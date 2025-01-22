@@ -12,6 +12,7 @@
     "fs:allow-app-write",
     "fs:allow-app-write-recursive",
     "fs:allow-app-read-recursive",
-    "fs:create-app-specific-dirs"
+    "fs:create-app-specific-dirs",
+    "clipboard-manager:allow-write-text"
   ]
 }

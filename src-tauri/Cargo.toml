@@ -25,5 +25,3 @@ serde_json = "1"
 tauri-plugin-dialog = "2"
 tauri-plugin-clipboard-manager = "2.2.0"
 tauri-plugin-fs = "2"
-rust_box = { path = "../../rust_box" }
-
