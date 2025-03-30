@@ -25,6 +25,34 @@ const loadJSONEditor = (initValue, onValidate, onChangeText) => {
     return jsoneditor
 }
 
+var superDecode = (value) => {
+    let dataType = typeof value
+    if (dataType == 'string') {
+        try {
+            let data = JSON.parse(value)
+            return superDecode(data)
+        } catch(e) {
+            return value
+        }
+    }
+
+    if (dataType == 'object') {
+        if (value.length == undefined) {
+           let keys = Object.keys(value)
+           for (let i = 0; i < keys.length; i++) {
+               let key = keys[i]
+               value[key] = superDecode(value[key])
+           } 
+           return value
+        }
+        for (let i = 0; i < value.length; i++) {
+            value[i] = superDecode(value[i])
+        }
+    }
+
+    return value
+}
+
 var getCurrent = async () => {
     try {
         let value = await readTextFile('current.json', { baseDir: BaseDirectory.AppData });
@@ -130,6 +158,15 @@ function App1() {
         }
     }
 
+    var superParse = () => {
+        try {
+            let data = superDecode(JSON.parse(editor.getText()))
+            editor.set(data)
+        } catch (e) {
+            Message.error("Super Decode failure")
+        }
+    }
+
     var toGoStruct = () => {
         let result = jsonToGo(JSON.stringify(editor.get()), null, null, false);
         Modal.info({
@@ -156,12 +193,13 @@ function App1() {
         <div style={{ height: jsonHeight }} id="jsoneditor" ></div>
         <div style={{ textAlign: "center", marginTop: "15px" }}>
             <Space>
-                <Button onClick={loadJSON} type="outline" icon={<IconImport />}>加载</Button>
-                <Button type="outline" icon={<IconSave />} onClick={saveJSON}>保存</Button>
+                <Button onClick={loadJSON} type="outline" icon={<IconImport />}>文件加载</Button>
+                <Button type="outline" icon={<IconSave />} onClick={saveJSON}>保存本地</Button>
                 <Button onClick={clearJSON} type="outline" icon={<IconRefresh />}>清空</Button>
                 <Button onClick={toGoStruct} type="outline" icon={<IconFire />}>转Go结构体</Button>
-                <Button onClick={serialize} type="outline" icon={<IconAlignLeft />}>序列化</Button>
-                <Button onClick={deserializeJSON} type="outline" icon={<IconAlignRight />}>反序列化</Button>
+                <Button onClick={serialize} type="outline" icon={<IconAlignLeft />}>Stringify</Button>
+                <Button onClick={deserializeJSON} type="outline" icon={<IconAlignRight />}>Parse</Button>
+                <Button onClick={superParse} type="outline" icon={<IconAlignRight />}>SuperParse</Button>
                 <Button onClick={copy} type="outline" icon={<IconCopy />}>复制</Button>
             </Space>
         </div>
