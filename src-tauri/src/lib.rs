@@ -1,6 +1,7 @@
 use tauri::Error as TauriError;
 use std::fs::File;
 use std::io::{Read, Write};
+use tauri_plugin_sql::{Builder, Migration, MigrationKind};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 
 #[tauri::command]
@@ -29,11 +30,20 @@ fn write_file(name: String, content: String) -> Result<(), TauriError> {
 }
 
 pub fn run() {
+    let migrations = vec![
+        Migration {
+            version: 1,
+            description: "create_initial_tables",
+            sql: "CREATE TABLE json_data (id INTEGER PRIMARY KEY, name TEXT, date TEXT, json TEXT, timestamp INTEGER);",
+            kind: MigrationKind::Up,
+        }
+    ];
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_sql::Builder::default().add_migrations("sqlite:json.db", migrations).build())
         .invoke_handler(tauri::generate_handler![read_file, write_file])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

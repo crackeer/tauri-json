@@ -3,7 +3,7 @@ import "jsoneditor/dist/jsoneditor.css";
 import "@arco-design/web-react/dist/css/arco.css";
 import { Button, Modal, Space, Message, Input } from "@arco-design/web-react";
 import { writeTextFile, BaseDirectory, readTextFile, exists, create, mkdir } from '@tauri-apps/plugin-fs';
-import { IconSave, IconImport, IconFire, IconAlignLeft, IconRefresh, IconAlignRight, IconCopy } from "@arco-design/web-react/icon";
+import { IconSave, IconImport, IconFire, IconAlignLeft, IconRefresh, IconAlignRight, IconCopy, IconList } from "@arco-design/web-react/icon";
 import JSONEditor from 'jsoneditor';
 import dayjs from "dayjs";
 import { save, open } from '@tauri-apps/plugin-dialog';
@@ -189,12 +189,17 @@ function App1() {
             Message.success("复制成功")
         })
     }
+
+    var showList = () => {
+        
+    }
     return <div>
         <div style={{ height: jsonHeight }} id="jsoneditor" ></div>
         <div style={{ textAlign: "center", marginTop: "15px" }}>
-            <Space>
+            <Space wrap={true}>
+                <Button onClick={showList} type="outline" icon={<IconList />}>列表</Button>
                 <Button onClick={loadJSON} type="outline" icon={<IconImport />}>文件加载</Button>
-                <Button type="outline" icon={<IconSave />} onClick={saveJSON}>保存本地</Button>
+                <Button type="outline" icon={<IconSave />} onClick={saveJSON}>保存文件</Button>
                 <Button onClick={clearJSON} type="outline" icon={<IconRefresh />}>清空</Button>
                 <Button onClick={toGoStruct} type="outline" icon={<IconFire />}>转Go结构体</Button>
                 <Button onClick={serialize} type="outline" icon={<IconAlignLeft />}>Stringify</Button>
