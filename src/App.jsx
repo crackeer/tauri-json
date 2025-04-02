@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from "react";
 import "jsoneditor/dist/jsoneditor.css";
 import "@arco-design/web-react/dist/css/arco.css";
-import { Button, Modal, Space, Message, Input } from "@arco-design/web-react";
+import { Button, Modal, Space, Message, Input, Grid, List, ResizeBox } from "@arco-design/web-react";
 import { writeTextFile, BaseDirectory, readTextFile, exists, create, mkdir } from '@tauri-apps/plugin-fs';
-import { IconSave, IconImport, IconFire, IconAlignLeft, IconRefresh, IconAlignRight, IconCopy, IconList } from "@arco-design/web-react/icon";
+import { IconSave, IconImport, IconFire, IconAlignLeft, IconRefresh, IconAlignRight, IconCopy, IconEdit, IconDelete } from "@arco-design/web-react/icon";
 import JSONEditor from 'jsoneditor';
 import dayjs from "dayjs";
 import { save, open } from '@tauri-apps/plugin-dialog';
 import invoke from "@/util/invoke";
 import jsonToGo from "@/util/json-to-go";
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import sqlite from "@/util/sqlite";
+const Row = Grid.Row;
+const Col = Grid.Col;
 const loadJSONEditor = (initValue, onValidate, onChangeText) => {
     const container = document.getElementById("jsoneditor")
     const options = {
@@ -31,19 +34,19 @@ var superDecode = (value) => {
         try {
             let data = JSON.parse(value)
             return superDecode(data)
-        } catch(e) {
+        } catch (e) {
             return value
         }
     }
 
     if (dataType == 'object') {
         if (value.length == undefined) {
-           let keys = Object.keys(value)
-           for (let i = 0; i < keys.length; i++) {
-               let key = keys[i]
-               value[key] = superDecode(value[key])
-           } 
-           return value
+            let keys = Object.keys(value)
+            for (let i = 0; i < keys.length; i++) {
+                let key = keys[i]
+                value[key] = superDecode(value[key])
+            }
+            return value
         }
         for (let i = 0; i < value.length; i++) {
             value[i] = superDecode(value[i])
@@ -91,6 +94,7 @@ var getJsonHeight = () => {
 var editor = null;
 function App1() {
     const [jsonHeight, setJsonHeight] = useState(400)
+    const [jsonList, setJsonList] = useState([])
 
     useEffect(() => {
         getCurrent().then((value) => {
@@ -108,6 +112,9 @@ function App1() {
         window.onresize = () => {
             setJsonHeight(getJsonHeight())
         };
+        sqlite.queryJSONData().then((result) => {
+            setJsonList(result)
+        })
     }, [])
 
     var loadJSON = async () => {
@@ -190,25 +197,68 @@ function App1() {
         })
     }
 
-    var showList = () => {
-        
+    var getJsonList = async () => {
+        let result = await sqlite.queryJSONData()
+        setJsonList(result)
     }
+
+    var saveJSON2Sqlite = async () => {
+        let data = JSON.stringify(editor.get())
+        let name = data
+        if (data.length > 30) {
+            name = data.substring(0, 30)
+        }
+        let result = await sqlite.addJSONData(name, data)
+        await getJsonList()
+    }
+
+    var deleteJSON = async (item) => {
+        console.log(item)
+    }
+
     return <div>
-        <div style={{ height: jsonHeight }} id="jsoneditor" ></div>
-        <div style={{ textAlign: "center", marginTop: "15px" }}>
-            <Space wrap={true}>
-                <Button onClick={showList} type="outline" icon={<IconList />}>列表</Button>
-                <Button onClick={loadJSON} type="outline" icon={<IconImport />}>文件加载</Button>
-                <Button type="outline" icon={<IconSave />} onClick={saveJSON}>保存文件</Button>
-                <Button onClick={clearJSON} type="outline" icon={<IconRefresh />}>清空</Button>
-                <Button onClick={toGoStruct} type="outline" icon={<IconFire />}>转Go结构体</Button>
-                <Button onClick={serialize} type="outline" icon={<IconAlignLeft />}>Stringify</Button>
-                <Button onClick={deserializeJSON} type="outline" icon={<IconAlignRight />}>Parse</Button>
-                <Button onClick={superParse} type="outline" icon={<IconAlignRight />}>SuperParse</Button>
-                <Button onClick={copy} type="outline" icon={<IconCopy />}>复制</Button>
-            </Space>
-        </div>
-    </div>
+        <ResizeBox.Split
+            direction={'horizontal'}
+            style={{
+                border: '1px solid var(--color-border)',
+            }}
+            size={0.2}
+            max={0.8}
+            min={0.2}
+            panes={[
+                <List style={{ padding: "3px" }} dataSource={jsonList} size={'small'}
+                    render={(item, index) => {
+                        return <List.Item key={index} actions={[
+                            <span onClick={deleteJSON.bind(this, item)}>
+                                <IconEdit />
+                            </span>,
+                            <span onClick={deleteJSON.bind(this, item)}>
+                                <IconDelete />
+                            </span>,
+                        ]}>
+                            {item.name}
+                        </List.Item>
+                    }}
+                />,
+                <div>
+                    <div style={{ height: jsonHeight }} id="jsoneditor" ></div>
+                    <div style={{ textAlign: "center", marginTop: "15px" }}>
+                        <Space wrap={true}>
+                            <Button onClick={loadJSON} type="outline" icon={<IconImport />}>文件加载</Button>
+                            <Button type="outline" icon={<IconSave />} onClick={saveJSON2Sqlite}>保存</Button>
+                            <Button onClick={clearJSON} type="outline" icon={<IconRefresh />}>清空</Button>
+                            <Button onClick={toGoStruct} type="outline" icon={<IconFire />}>转Go结构体</Button>
+                            <Button onClick={serialize} type="outline" icon={<IconAlignLeft />}>Stringify</Button>
+                            <Button onClick={deserializeJSON} type="outline" icon={<IconAlignRight />}>Parse</Button>
+                            <Button onClick={superParse} type="outline" icon={<IconAlignRight />}>SuperParse</Button>
+                            <Button onClick={copy} type="outline" icon={<IconCopy />}>复制</Button>
+                        </Space>
+                    </div>
+                </div>
+            ]}
+        />
+
+    </div >
 }
 
 export default App1
