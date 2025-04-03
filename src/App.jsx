@@ -11,8 +11,6 @@ import invoke from "@/util/invoke";
 import jsonToGo from "@/util/json-to-go";
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import sqlite from "@/util/sqlite";
-const Row = Grid.Row;
-const Col = Grid.Col;
 const loadJSONEditor = (initValue, onValidate, onChangeText) => {
     const container = document.getElementById("jsoneditor")
     const options = {
@@ -95,6 +93,9 @@ var editor = null;
 function App1() {
     const [jsonHeight, setJsonHeight] = useState(400)
     const [jsonList, setJsonList] = useState([])
+    const [name, setName] = useState('')
+    const [visible, setVisible] = useState(false)
+    const [id, setID] = useState(0)
 
     useEffect(() => {
         getCurrent().then((value) => {
@@ -112,9 +113,7 @@ function App1() {
         window.onresize = () => {
             setJsonHeight(getJsonHeight())
         };
-        sqlite.queryJSONData().then((result) => {
-            setJsonList(result)
-        })
+        getJsonList()
     }, [])
 
     var loadJSON = async () => {
@@ -199,21 +198,44 @@ function App1() {
 
     var getJsonList = async () => {
         let result = await sqlite.queryJSONData()
+        result = result.sort((a, b) => {
+            return b.id - a.id
+        })
         setJsonList(result)
     }
 
     var saveJSON2Sqlite = async () => {
+        setVisible(true)
+        setName('')
+    }
+
+    var doSaveJSON2Sqlite = async () => {
         let data = JSON.stringify(editor.get())
-        let name = data
-        if (data.length > 30) {
-            name = data.substring(0, 30)
-        }
         let result = await sqlite.addJSONData(name, data)
         await getJsonList()
+        setVisible(false)
+        Message.success("保存成功")
     }
 
     var deleteJSON = async (item) => {
+        Modal.confirm({
+            title: '确认删除',
+            content: '确认删除该数据吗？',
+            okButtonProps: {
+                status: 'danger',
+            },
+            onOk: () => {
+                sqlite.deleteJSONData(item.id).then(() => {
+                    getJsonList()
+                })
+            },
+        });
+    }
+
+    var selectJSON = async (item) => {
         console.log(item)
+        editor.set(JSON.parse(item.json))
+        setID(item.id)
     }
 
     return <div>
@@ -230,13 +252,10 @@ function App1() {
                     render={(item, index) => {
                         return <List.Item key={index} actions={[
                             <span onClick={deleteJSON.bind(this, item)}>
-                                <IconEdit />
+                                <IconDelete style={{ color: 'red' }} />
                             </span>,
-                            <span onClick={deleteJSON.bind(this, item)}>
-                                <IconDelete />
-                            </span>,
-                        ]}>
-                            {item.name}
+                        ]} style={{ padding: '5px 3px 5px 7px' }}>
+                            <Button type='text' size="small" style={{ padding: '2px', color: 'green' }} onClick={selectJSON.bind(null, item)}>{item.name}</Button>
                         </List.Item>
                     }}
                 />,
@@ -258,7 +277,19 @@ function App1() {
             ]}
         />
 
-    </div >
+        <Modal
+            title='请输入名字'
+            visible={visible}
+            okText='确认'
+            cancelText='取消'
+            onOk={doSaveJSON2Sqlite}
+            onCancel={() => setVisible(false)}
+        >
+            <Input placeholder="请输入名称" onChange={(value) => {
+                setName(value)
+            }} value={name} />
+        </Modal>
+    </div>
 }
 
 export default App1

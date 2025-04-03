@@ -23,6 +23,12 @@ async function addJSONData(name, data) {
     return result
 }
 
+async function deleteJSONData(id) {
+    const db = await getDb();
+    let result = await db.execute("DELETE FROM json_data WHERE id = $1", [id]);
+    return result 
+}
+
 export default {
-    getDb, queryJSONData, addJSONData
+    getDb, queryJSONData, addJSONData, deleteJSONData
 }
